@@ -1,3 +1,4 @@
+import time
 from fastapi import APIRouter, Header, Response, HTTPException
 from app.schemas import PaymentRequest, PaymentResponse
 from app.store import store
@@ -11,26 +12,29 @@ def process_payment(
     response: Response,
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
 ):
-    existing = store.get(idempotency_key)
+    lock = store.get_lock(idempotency_key)
 
-    if existing is not None:
-        if existing["request_body"] != payment.model_dump():
-            raise HTTPException(
-                status_code=409,
-                detail="Idempotency key already used for a different request body.",
-            )
+    with lock:
+        existing = store.get(idempotency_key)
 
-        response.headers["X-Cache-Hit"] = "true"
-        return existing["response_body"]
+        if existing is not None:
+            if existing["request_body"] != payment.model_dump():
+                raise HTTPException(
+                    status_code=409,
+                    detail="Idempotency key already used for a different request body.",
+                )
+            response.headers["X-Cache-Hit"] = "true"
+            return existing["response_body"]
 
-    payment_response = PaymentResponse(
-        message=f"Charged {payment.amount} {payment.currency}"
-    )
+        time.sleep(2)  
+        payment_response = PaymentResponse(
+            message=f"Charged {payment.amount} {payment.currency}"
+        )
 
-    store.save(
-        key=idempotency_key,
-        request_body=payment.model_dump(),
-        response_body=payment_response.model_dump(),
-    )
+        store.save(
+            key=idempotency_key,
+            request_body=payment.model_dump(),
+            response_body=payment_response.model_dump(),
+        )
 
-    return payment_response
+        return payment_response

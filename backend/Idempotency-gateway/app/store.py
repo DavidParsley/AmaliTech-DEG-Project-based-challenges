@@ -1,6 +1,10 @@
+import threading
+
 class IdempotencyStore:
     def __init__(self):
         self._store: dict[str, dict] = {}
+        self._locks: dict[str, threading.Lock] = {}
+        self._meta_lock = threading.Lock()
 
     def get(self, key: str) -> dict | None:
         return self._store.get(key)
@@ -11,4 +15,11 @@ class IdempotencyStore:
             "response_body": response_body,
         }
 
-store = IdempotencyStore()        
+    def get_lock(self, key: str) -> threading.Lock:
+        with self._meta_lock:
+            if key not in self._locks:
+                self._locks[key] = threading.Lock()
+            return self._locks[key]
+
+
+store = IdempotencyStore()
