@@ -1,4 +1,8 @@
 import threading
+import time
+
+from app.config import IDEMPOTENCY_KEY_TTL_SECONDS
+
 
 class IdempotencyStore:
     def __init__(self):
@@ -7,12 +11,22 @@ class IdempotencyStore:
         self._meta_lock = threading.Lock()
 
     def get(self, key: str) -> dict | None:
-        return self._store.get(key)
+        entry = self._store.get(key)
+        if entry is None:
+            return None
+
+        if time.time() - entry["created_at"] > IDEMPOTENCY_KEY_TTL_SECONDS:
+            # if its expired forget it (current set upis 24hrs). Next request with this key is treated as brand new not as a conflict and not as a cache.
+            del self._store[key]
+            return None
+
+        return entry
 
     def save(self, key: str, request_body: dict, response_body: dict) -> None:
         self._store[key] = {
             "request_body": request_body,
             "response_body": response_body,
+            "created_at": time.time(),
         }
 
     def get_lock(self, key: str) -> threading.Lock:
