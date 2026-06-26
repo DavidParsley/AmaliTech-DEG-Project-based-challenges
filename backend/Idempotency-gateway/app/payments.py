@@ -28,7 +28,7 @@ def process_payment(
 
         time.sleep(2)  
         payment_response = PaymentResponse(
-            message=f"Charged {payment.amount} {payment.currency}"
+            message=f"Charged {payment.amount:g} {payment.currency}"
         )
 
         store.save(

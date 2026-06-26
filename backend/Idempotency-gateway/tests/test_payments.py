@@ -16,7 +16,7 @@ def test_story1_happy_path_new_key_returns_200():
         json={"amount": 50, "currency": "GHS"},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "Charged 50.0 GHS"}
+    assert response.json() == {"message": "Charged 50 GHS"}
     assert "x-cache-hit" not in response.headers
 
 
@@ -104,4 +104,4 @@ def test_developers_choice_ttl_expiry_resets_key(monkeypatch):
         "/process-payment", headers=headers, json={"amount": 2, "currency": "USD"}
     )
     assert second.status_code == 200
-    assert second.json() == {"message": "Charged 2.0 USD"}
+    assert second.json() == {"message": "Charged 2 USD"}
