@@ -5,3 +5,4 @@ __pycache__/
 Pipfile
 Pipfile.lock
 structure.txt
+.pytest_cache/
